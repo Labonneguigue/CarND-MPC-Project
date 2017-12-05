@@ -1,0 +1,27 @@
+#ifndef UTILS_H
+#define UTILS_H
+
+#include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+
+namespace utl {
+
+    template <typename T>
+    constexpr T pi()
+    {
+        return T(3.141592653589793);
+    }
+
+    template <typename T>
+    inline T deg2rad(T x) {
+        return x * pi<T>() / T(180.0);
+    }
+
+    template <typename T>
+    T rad2deg(T x) {
+        return x * T(180.0) / pi<T>();
+    }
+    
+} // namespace utl
+
+#endif //UTILS_H
