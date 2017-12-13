@@ -7,7 +7,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 10;
+size_t N = 7;
 double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
@@ -35,8 +35,8 @@ size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
 
 // Both the reference cross track and orientation errors are 0.
-// The reference velocity is set to 40 mph.
-double ref_v = 40;
+// The reference velocity is set in [mph].
+double ref_v = 60;
 
 class FG_eval {
 public:
@@ -53,13 +53,13 @@ public:
         // The part of the cost based on the reference state.
 
         // These weights are tunable to improve the response/trajectory of the car
-        const double cteErrorWeight = 1.0;
-        const double epsiErrorWeight = 1.0;
-        const double deltaSpeedErrorWeight = 1.0;
-        const double steeringErrorWeight = 1.0;
-        const double accelerationErrorWeight = 1.0;
-        const double diffSteeringErrorWeight = 1.0;
-        const double diffAccelErrorWeight = 1.0;
+        const double cteErrorWeight = 20.0;
+        const double epsiErrorWeight = 2000.0;
+        const double deltaSpeedErrorWeight = 1500.0;
+        const double steeringErrorWeight = 20000.0;
+        const double accelerationErrorWeight = 100.0;
+        const double diffSteeringErrorWeight = 100.0;
+        const double diffAccelErrorWeight = 500.0;
 
         for (int t = 0; t < N; t++) {
             fg[0] += cteErrorWeight * CppAD::pow(vars[cte_start + t], 2); // Penalty for cross-track error
@@ -144,10 +144,12 @@ public:
 //
 // MPC class definition implementation.
 //
-MPC::MPC()
-    : mStateSize(6)
-    , mNbActuators(2)
-    {}
+MPC::MPC(double artificialLatency)
+    : mStateSize(6U)
+    , mNbActuators(2U)
+    , mArtificialLatencyMs(artificialLatency)
+    , mRuntime(mArtificialLatencyMs)
+{}
 
 MPC::~MPC()
     {}

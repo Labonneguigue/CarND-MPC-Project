@@ -12,7 +12,7 @@ public:
     /** Default constructor
      *
      */
-    MPC();
+    MPC(double artificialLatency = 100.0);
 
     /** Default destructor
      *
@@ -41,18 +41,42 @@ public:
         return mComputedTrajectoryY;
     }
 
-    inline int stateSize(){
+    /** Returns the size of the state
+     *
+     */
+    inline unsigned int stateSize(){
         return mStateSize;
+    }
+
+    /** Returns the arbitrary artificial latency that is
+     *  supposed to represent the actuators latency.
+     *
+     * @return artificalLatencyMs  Expressed in milliseconds.
+     */
+    inline double latency(){
+        return mArtificialLatencyMs;
+    }
+
+    inline void runtime(double runtime){
+        mRuntime = runtime;
+    }
+
+    inline double runtime(){
+        return mRuntime;
     }
 
 private:
 
-    int mStateSize;
-    int mNbActuators;
+    unsigned int mStateSize; ///< Number of parameters given to the solver.
+    unsigned int mNbActuators; ///< Number of actuator values given to the simulator.
 
-    std::vector<double> mComputedTrajectoryX;
-    std::vector<double> mComputedTrajectoryY;
-    
+    std::vector<double> mComputedTrajectoryX; ///< x coordinate of the MPC trajectory.
+    std::vector<double> mComputedTrajectoryY; ///< y coordinate of the MPC trajectory.
+
+    const double mArtificialLatencyMs; ///< latency of the actuators expressed in [ms].
+
+    double mRuntime; ///< runtime of the overall callback mechanism in [ms].
+
 };
 
 #endif /* MPC_H */

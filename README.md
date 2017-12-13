@@ -1,5 +1,30 @@
 # CarND-Controls-MPC
+
 Self-Driving Car Engineer Nanodegree Program
+
+---
+
+My solution answers the Udacity [passing requirements.](https://review.udacity.com/#!/rubrics/896/view)
+
+## The Model
+
+## Timestep Length and Elapsed Duration (N & dt)
+
+## Polynomial Fitting and MPC Preprocessing
+
+## Model Predictive Control with Latency
+
+### Conversion from Map coordinates to Car coordinates
+
+cos(psi) * (ptsx[i] - px) + sin(psi) * (ptsy[i] - py);
+-sin(psi) * (ptsx[i] - px) + cos(psi) * (ptsy[i] - py);
+
+cos(-psi) * (ptsx[i] - px) - sin(-psi) * (ptsy[i] - py);  
+cos(-psi) * (ptsy[i] - py) + sin(-psi) * (ptsx[i] - px);
+
+---
+
+## Original Udacity README
 
 ---
 
