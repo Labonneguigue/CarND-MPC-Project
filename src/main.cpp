@@ -68,17 +68,12 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
 int main() {
     uWS::Hub h;
 
-    // MPC is initialized here!
-    MPC mpc;
+    MPC mpc; // MPC is initialized here!
 
     h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                        uWS::OpCode opCode) {
 
-
         std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
-
-        // Artificial latency - Represents the actuators latency in [ms]
-        const double artificialtLatencyMs = 100.0; // TODO: use the one in MPC.cpp (duplicate)
 
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
@@ -94,12 +89,12 @@ int main() {
                     // j[1] is the data JSON object
                     vector<double> ptsX = j[1]["ptsx"];
                     vector<double> ptsY = j[1]["ptsy"];
-                    double px = j[1]["x"];    // car global x coordinate [meter]
-                    double py = j[1]["y"];    // car global y coordinate [meter]
-                    double psi = j[1]["psi"]; // car global heading angle [rad]
-                    double v = static_cast<double>(j[1]["speed"]); // car speed in [mph]
-                    double steering_angle = j[1]["steering_angle"];
-                    double throttle = j[1]["throttle"];
+                    const double px = j[1]["x"];    // car global x coordinate [meter]
+                    const double py = j[1]["y"];    // car global y coordinate [meter]
+                    const double psi = j[1]["psi"]; // car global heading angle [rad]
+                    const double v = static_cast<double>(j[1]["speed"]); // car speed in [mph]
+                    const double steering_angle = j[1]["steering_angle"]; // current car steering angle
+                    const double throttle = j[1]["throttle"]; // current car throttle
 
 #if DEBUG
                     std::cout << fixed << setprecision(4);
@@ -108,33 +103,6 @@ int main() {
                     std::cout << setw(6) << "psi :" << setw(6) << psi << "\t v : " << setw(6) << v << "\n";
                     std::cout << "----------------\n";
 #endif
-                    //*************************************************************
-                    // TODO: display steering angle and throttle and check predicted
-                    // values extrapolated due to the latency
-                    //*************************************************************
-
-                    // I extrapolate the car's position after the estimated latency
-                    // Latency is 100ms.
-                    // Here are the motion's equations:
-                    // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
-                    // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
-                    // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
-                    // v_[t+1] = v[t] + a[t] * dt
-                    // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
-                    // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
-                    const double latencyS = mpc.runtime() / 1000.0;
-                    const double Lf = 2.67; // TODO : remove from here (duplicate)
-                    const double predV = v + throttle * latencyS;
-                    const double predPsi = psi + (predV / Lf) * (-steering_angle) * latencyS;
-                    const double predX = px + (predV * cos(predPsi) * latencyS);
-                    const double predY = py + (predV * sin(predPsi) * latencyS);
-
-                    #if DEBUG
-                    std::cout << setw(10) << "predX :" << setw(10) << predX
-                    << setw(10) << "\t predY : " << setw(10) << predY << "\n";
-                    std::cout << setw(10) << "predPsi : " << setw(10) << predPsi
-                    << setw(10) << "\t predV :" << setw(6) << predV << "\n\n";
-                    #endif
 
                     // Construction of eigen vectors that contain the waypoints
                     // The waypoints constitute the optimal trajectory in the
@@ -142,68 +110,25 @@ int main() {
                     Eigen::VectorXd ptsXVehicle(ptsX.size());
                     Eigen::VectorXd ptsYVehicle(ptsY.size());
                     assert(ptsXVehicle.size() == ptsYVehicle.size());
+
                     // I preprocess the waypoints to remove the current position of the car
                     // This step helps for the polynomial fitting
                     // Deduce car's position and then rotate every points by the angle of the car
-#if 0
-                    Eigen::Matrix2d rotation;
-                    rotation << cos(predPsi), sin(predPsi),
-                               -sin(predPsi), cos(predPsi);
-                    Eigen::Vector2d waypoint;
-                    for (int i = 0; i < ptsXVehicle.size(); i++) {
-//                        double x = ptsX[i] - predX;
-//                        double y = ptsY[i] - predY;
-//                        ptsXVehicle[i] = ( x * cos(predPsi) ) - (y * sin(predPsi));
-//                        ptsYVehicle[i] = ( x * sin(predPsi) ) + (y * cos(predPsi));
-                        waypoint = rotation * Eigen::Vector2d(ptsX[i] - predX,
-                                                              ptsY[i] - predY);
-                        ptsXVehicle[i] = waypoint[0];
-                        ptsYVehicle[i] = waypoint[1];
-                    }
-#else
                     Eigen::Matrix2d rotation;
                     rotation << cos(-psi), -sin(-psi),
                                 sin(-psi), cos(-psi);
                     Eigen::Vector2d waypoint;
                     for (int i = 0; i < ptsXVehicle.size(); i++) {
-                        //                        double x = ptsX[i] - predX;
-                        //                        double y = ptsY[i] - predY;
-                        //                        ptsXVehicle[i] = ( x * cos(predPsi) ) - (y * sin(predPsi));
-                        //                        ptsYVehicle[i] = ( x * sin(predPsi) ) + (y * cos(predPsi));
                         waypoint = rotation * Eigen::Vector2d(ptsX[i] - px,
                                                               ptsY[i] - py);
                         ptsXVehicle[i] = waypoint[0];
                         ptsYVehicle[i] = waypoint[1];
                     }
-#endif
-
-                    #if 0
-                    std::cout << "ptsX : ";
-                    for (int pts = 0 ; pts < ptsX.size() ; pts++ ){
-                        std::cout << ptsX[pts] << "  ";
-                    }
-                    std::cout << "\n";
-                    std::cout << "ptsY : ";
-                    for (int pts = 0 ; pts < ptsY.size() ; pts++ ){
-                        std::cout << ptsY[pts] << "  ";
-                    }
-                    std::cout << "\n";
-                    std::cout << "ptsXVehicle : ";
-                    for (int pts = 0 ; pts < ptsXVehicle.size() ; pts++ ){
-                        std::cout << ptsXVehicle[pts] << "  ";
-                    }
-                    std::cout << "\n";
-                    std::cout << "ptsYVehicle : ";
-                    for (int pts = 0 ; pts < ptsYVehicle.size() ; pts++ ){
-                        std::cout << ptsYVehicle[pts] << "  ";
-                    }
-                    std::cout << "\n";
-                    #endif
 
                     // I now fit a 2nd order polynomial on the waypoints/trajectory
-                    auto coeffs = polyfit(ptsXVehicle, ptsYVehicle, 3);
-                    double cte = coeffs[0]; //polyeval(coeffs, 0);      // Cross-track error
-                    double epsi = -atan(coeffs[1]);         // Angle error (psi)
+                    const auto coeffs = polyfit(ptsXVehicle, ptsYVehicle, 3);
+                    const double cte = coeffs[0];     // Cross-track error
+                    const double epsi = -atan(coeffs[1]); // Angle error (psi)
 
                     for (int coeff = 0 ; coeff < coeffs.size() ; coeff++ ){
                         assert(!isnan(coeffs[coeff]));
@@ -220,29 +145,34 @@ int main() {
                     std::cout << "epsi : " << epsi << "\n\n";
                     #endif
 
-                    const double dt = 0.1;
-                    const double current_px = 0.0 + v * dt;
-                    const double current_py = 0.0;
-                    const double current_psi = 0.0 + v * (-steering_angle) / Lf * dt;
-                    const double current_v = v + throttle * dt;
-                    const double current_cte = cte + v * sin(epsi) * dt;
-                    const double current_epsi = epsi + v * (-steering_angle) / Lf * dt;
+                    // I extrapolate the car's position after the estimated latency
+                    // Latency is 100ms.
+                    // Here are the motion's equations:
+                    // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+                    // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+                    // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+                    // v_[t+1] = v[t] + a[t] * dt
+                    // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+                    // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+                    const double pred_px = v * mpc.dt;
+                    const double pred_py = 0.0;
+                    const double pred_psi = v * (-steering_angle) / mpc.Lf * mpc.dt;
+                    const double pred_v = v + ( throttle * mpc.dt );
+                    const double pred_cte = cte + ( v * sin(epsi) * mpc.dt );
+                    const double pred_epsi = epsi + ( v * (-steering_angle) / mpc.Lf * mpc.dt );
 
                     // I set up the state vector
                     Eigen::VectorXd state(mpc.stateSize());
-                    //state << 0, 0, 0, predV, cte, epsi;
-                    state << current_px, current_py, current_psi, current_v, current_cte, current_epsi;
+                    state << pred_px, pred_py, pred_psi, pred_v, pred_cte, pred_epsi;
 
                     // I call the MPC Solver to compute the optimal trajectory
-                    auto result = mpc.Solve(state, coeffs);
-                    double steer_value = -result[0];
-                    double throttle_value = result[1];
+                    mpc.Solve(state, coeffs);
 
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-                    msgJson["steering_angle"] = steer_value;
-                    msgJson["throttle"] = throttle_value;
+                    msgJson["steering_angle"] = mpc.mSteerValueResult;
+                    msgJson["throttle"] = mpc.mThrottleResult;
 
                     #if DEBUG
                     std::cout << "steering angle : " << steer_value << "  throttle : " << throttle_value << "\n";
@@ -270,12 +200,13 @@ int main() {
                     // Latency
                     // The purpose is to mimic real driving conditions where
                     // the car doesn't actuate the commands instantly.
-                    this_thread::sleep_for(std::chrono::duration<double, std::milli>(artificialtLatencyMs));
+                    this_thread::sleep_for(std::chrono::duration<double, std::milli>(mpc.latency()));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
+                    assert(mpc.latency() == 100.0); //Submission check = latency indeed set to 100 milliseconds
 
                     // Effective latency = program time + added latency
-                    double runtime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
+                    const double runtime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
                     mpc.runtime(runtime);
 
                     #if DEBUG

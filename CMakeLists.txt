@@ -9,7 +9,21 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 
-set(sources src/MPC.cpp src/main.cpp)
+include_directories(
+    ${PROJECT_SOURCE_DIR}/src
+    )
+
+#set(sources src/MPC.cpp src/FG_eval.cpp src/main.cpp)
+
+add_library(
+    sources
+    src/MPC.cpp
+    src/MPC.h
+    src/FG_eval.cpp
+    src/FG_eval.h
+    src/config.h
+    src/utils.h
+)
 
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
@@ -23,7 +37,8 @@ link_directories(/usr/local/Cellar/libuv/1*/lib)
 
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-add_executable(mpc ${sources})
+add_executable(mpc src/main.cpp)
+#add_executable(mpc ${sources})
 
-target_link_libraries(mpc ipopt z ssl uv uWS)
+target_link_libraries(mpc sources ipopt z ssl uv uWS)
 

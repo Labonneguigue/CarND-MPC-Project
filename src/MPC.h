@@ -2,9 +2,7 @@
 #define MPC_H
 
 #include <vector>
-#include <cppad/cppad.hpp>
-#include <cppad/ipopt/solve.hpp>
-#include "Eigen-3.3/Eigen/Core"
+#include "FG_eval.h"
 
 using namespace std;
 using CppAD::AD;
@@ -26,9 +24,9 @@ public:
 
     /** Solve the model given an initial state and polynomial coefficients.
      *
-     * @return Returns the first actuations.
+     * @note Throttle and steering values are returned by public class variables
      */
-    vector<double> Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs);
+    void Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs);
 
     /** Returns the x axis of the trajectory that optimises the constraints
      *
@@ -62,13 +60,37 @@ public:
         return mArtificialLatencyMs;
     }
 
+    /** Trivial setter of the overall runtime of the Model Predictive Controller
+     *
+     */
     inline void runtime(double runtime){
         mRuntime = runtime;
     }
 
+    /** Simple getter to obtain the runtime of the overall execution
+     *  with the incurred artificial latency
+     */
     inline double runtime(){
         return mRuntime;
     }
+
+public:
+
+    double dt; ///< Timesteps duration
+
+    // This value assumes the model presented in the classroom is used.
+    //
+    // It was obtained by measuring the radius formed by running the vehicle in the
+    // simulator around in a circle with a constant steering angle and velocity on a
+    // flat terrain.
+    //
+    // Lf was tuned until the the radius formed by the simulating the model
+    // presented in the classroom matched the previous radius.
+    // Length from front of the car to CoG that has a similar radius.
+    double Lf;
+
+    double mSteerValueResult; ///< Result steer_value of the solve method to be applied to the car
+    double mThrottleResult; ///< Result throttle value of the solve method to be applied to the car
 
 private:
 
@@ -84,17 +106,20 @@ private:
 
     size_t N; ///< Number of timesteps to predict ahead
 
-    double dt; ///< Timesteps duration
+    double mTargetSpeed; ///< Top cruise speed to match
 
-    const size_t actuatorsArraySize;
-
-    const size_t constraintsArraySize;
-
-    const size_t nbVars;
+    const size_t actuatorsArraySize; ///< Size of the actuator array
+    const size_t constraintsArraySize; ///< Size of the array of the constraints
+    const size_t nbVars; ///< Number of model variables
 
     Dvector mState; ///< Vector keeping track of all the state variables
 
+    Dvector mState_lowerbound; ///< Vector of State variables lower limits
+    Dvector mState_upperbound; ///< Vector of State variables upper limits
+    Dvector mState_constraint_lowerbound; ///< Vector of constraints lower limits
+    Dvector mState_constraint_upperbound; ///< Vector of constraints upper limits
 
+    FG_eval mFG_eval; ///< Solver
 
 };
 
