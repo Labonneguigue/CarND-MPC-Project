@@ -6,15 +6,43 @@ Self-Driving Car Engineer Nanodegree Program
 
 My solution answers the Udacity [passing requirements.](https://review.udacity.com/#!/rubrics/896/view)
 
-## The Model
+## Introduction
 
-## Timestep Length and Elapsed Duration (N & dt)
+In this project we are asked to implement a Model Predictive Controler (MPC) to actuate the car to follow a trajectory. The car can be actuated by modifying its acceleration and the steering wheels angle.
+The car in question is living in a [simulator](https://github.com/udacity/self-driving-car-sim/releases) provided by Udacity. The communication is done via WebSocket.
 
-## Polynomial Fitting and MPC Preprocessing
+## Implementation - Rubric Points
 
-## Model Predictive Control with Latency
+#### External Libraries
 
-### Conversion from Map coordinates to Car coordinates
+To fulfill this project, Udacity suggested me to use the IPOPT and CPPAD libraries to respectively solve the optimal trajectory based on a set of input parameter and to calculate derivatives more easily.
+
+### The Model
+
+The model I've used is the usual Kinematic Bicycle Model defined by the equations bellow:
+
+![equations1](./images/MPCequations1.png)
+![equations2](./images/MPCequations2.png)
+
+The only vehicle parameter is Lf which represents the distance from the car's CG to the steering axle in order to approximate the effective turning radius. The value for Lf was left equal to 2.67 m as determined experimentally in the simulator by Udacity.
+
+My vector of state variables : `[x, y, psi, v, Cte, Epsi]`
+
+My actuator vector : `[delta, a]`
+
+
+
+_Note : Thanks to [Edufford](https://github.com/edufford) for the correction of the fifth equation._
+
+### Timestep Length and Elapsed Duration (N & dt)
+
+
+
+### Polynomial Fitting and MPC Preprocessing
+
+### Model Predictive Control with Latency
+
+#### Conversion from Map coordinates to Car coordinates
 
 cos(psi) * (ptsx[i] - px) + sin(psi) * (ptsy[i] - py);
 -sin(psi) * (ptsx[i] - px) + cos(psi) * (ptsy[i] - py);

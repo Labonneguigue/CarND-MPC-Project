@@ -2,12 +2,17 @@
 #define MPC_H
 
 #include <vector>
+#include <cppad/cppad.hpp>
+#include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
 
 using namespace std;
+using CppAD::AD;
 
 class MPC {
 public:
+
+    typedef CPPAD_TESTVECTOR(double) Dvector;
 
     /** Default constructor
      *
@@ -76,6 +81,20 @@ private:
     const double mArtificialLatencyMs; ///< latency of the actuators expressed in [ms].
 
     double mRuntime; ///< runtime of the overall callback mechanism in [ms].
+
+    size_t N; ///< Number of timesteps to predict ahead
+
+    double dt; ///< Timesteps duration
+
+    const size_t actuatorsArraySize;
+
+    const size_t constraintsArraySize;
+
+    const size_t nbVars;
+
+    Dvector mState; ///< Vector keeping track of all the state variables
+
+
 
 };
 

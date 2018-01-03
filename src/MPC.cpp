@@ -1,14 +1,12 @@
 #include "MPC.h"
-#include <cppad/cppad.hpp>
-#include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
 #include "utils.h"
 
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 7;
-double dt = 0.1;
+size_t N = 8;
+double dt = 0.15;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -36,7 +34,7 @@ size_t a_start = delta_start + N - 1;
 
 // Both the reference cross track and orientation errors are 0.
 // The reference velocity is set in [mph].
-double ref_v = 60;
+double ref_v = 80;
 
 class FG_eval {
 public:
@@ -53,13 +51,13 @@ public:
         // The part of the cost based on the reference state.
 
         // These weights are tunable to improve the response/trajectory of the car
-        const double cteErrorWeight = 20.0;
-        const double epsiErrorWeight = 2000.0;
-        const double deltaSpeedErrorWeight = 1500.0;
-        const double steeringErrorWeight = 20000.0;
-        const double accelerationErrorWeight = 100.0;
-        const double diffSteeringErrorWeight = 100.0;
-        const double diffAccelErrorWeight = 500.0;
+        const double cteErrorWeight = 1.0;//20.0;
+        const double epsiErrorWeight = 1.0;//2000.0;
+        const double deltaSpeedErrorWeight = 1.0;//1500.0;
+        const double steeringErrorWeight = 1.0;//20000.0;
+        const double accelerationErrorWeight = 1.0;//100.0;
+        const double diffSteeringErrorWeight = 1.0;//100.0;
+        const double diffAccelErrorWeight = 1.0;//500.0;
 
         for (int t = 0; t < N; t++) {
             fg[0] += cteErrorWeight * CppAD::pow(vars[cte_start + t], 2); // Penalty for cross-track error
@@ -71,6 +69,7 @@ public:
         for (int t = 0; t < N - 1; t++) {
             fg[0] += steeringErrorWeight * CppAD::pow(vars[delta_start + t], 2);  // Penalty for steering the wheels
             fg[0] += accelerationErrorWeight * CppAD::pow(vars[a_start + t], 2);      // Penalty for accelerating or breaking
+            fg[0] += 10*CppAD::pow(vars[delta_start + t] * vars[v_start+t], 2);
         }
 
         // Minimize the value gap between sequential actuations.
@@ -149,6 +148,12 @@ MPC::MPC(double artificialLatency)
     , mNbActuators(2U)
     , mArtificialLatencyMs(artificialLatency)
     , mRuntime(mArtificialLatencyMs)
+    , N(8)
+    , dt(0.15)
+    , actuatorsArraySize(static_cast<size_t>( mNbActuators * ( N - 1 ) ))
+    , constraintsArraySize(static_cast<size_t>( N * mStateSize ))
+    , nbVars(actuatorsArraySize + constraintsArraySize)
+    , mState(nbVars)
 {}
 
 MPC::~MPC()
@@ -165,26 +170,26 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // 4 * 10 + 2 * 9
 
     // Number of actuators * actuation steps
-    const size_t actuatorsArraySize = static_cast<size_t>( mNbActuators * ( N - 1 ) );
+    //const size_t actuatorsArraySize = static_cast<size_t>( mNbActuators * ( N - 1 ) );
     // TODO: Set the number of constraints
-    const size_t constraintsArraySize = static_cast<size_t>( N * mStateSize );
+    //const size_t constraintsArraySize = static_cast<size_t>( N * mStateSize );
 
-    const size_t nbVars = actuatorsArraySize + constraintsArraySize;
+    //const size_t nbVars = actuatorsArraySize + constraintsArraySize;
 
     // Initial value of the independent variables.
     // SHOULD BE 0 besides initial state.
-    Dvector vars(nbVars);
+    //Dvector vars(nbVars);
     for (int i = 0; i < nbVars; i++) {
-        vars[i] = 0.0;
+        mState[i] = 0.0;
     }
 
     // I set the initial state
-    vars[x_start] = state[0];
-    vars[y_start] = state[1];
-    vars[psi_start] = state[2];
-    vars[v_start] = state[3];
-    vars[cte_start] = state[4];
-    vars[epsi_start] = state[5];
+    mState[x_start] = state[0];
+    mState[y_start] = state[1];
+    mState[psi_start] = state[2];
+    mState[v_start] = state[3];
+    mState[cte_start] = state[4];
+    mState[epsi_start] = state[5];
 
 
     Dvector vars_lowerbound(nbVars);
@@ -263,7 +268,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
     // solve the problem
     CppAD::ipopt::solve<Dvector, FG_eval>(options,
-                                          vars,
+                                          mState,
                                           vars_lowerbound, vars_upperbound,
                                           constraints_lowerbound, constraints_upperbound,
                                           fg_eval,

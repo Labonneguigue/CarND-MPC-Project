@@ -10,7 +10,7 @@
 #include "json.hpp"
 #include "utils.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 // for convenience
 using json = nlohmann::json;
@@ -145,6 +145,7 @@ int main() {
                     // I preprocess the waypoints to remove the current position of the car
                     // This step helps for the polynomial fitting
                     // Deduce car's position and then rotate every points by the angle of the car
+#if 0
                     Eigen::Matrix2d rotation;
                     rotation << cos(predPsi), sin(predPsi),
                                -sin(predPsi), cos(predPsi);
@@ -159,6 +160,22 @@ int main() {
                         ptsXVehicle[i] = waypoint[0];
                         ptsYVehicle[i] = waypoint[1];
                     }
+#else
+                    Eigen::Matrix2d rotation;
+                    rotation << cos(-psi), -sin(-psi),
+                                sin(-psi), cos(-psi);
+                    Eigen::Vector2d waypoint;
+                    for (int i = 0; i < ptsXVehicle.size(); i++) {
+                        //                        double x = ptsX[i] - predX;
+                        //                        double y = ptsY[i] - predY;
+                        //                        ptsXVehicle[i] = ( x * cos(predPsi) ) - (y * sin(predPsi));
+                        //                        ptsYVehicle[i] = ( x * sin(predPsi) ) + (y * cos(predPsi));
+                        waypoint = rotation * Eigen::Vector2d(ptsX[i] - px,
+                                                              ptsY[i] - py);
+                        ptsXVehicle[i] = waypoint[0];
+                        ptsYVehicle[i] = waypoint[1];
+                    }
+#endif
 
                     #if 0
                     std::cout << "ptsX : ";
@@ -203,9 +220,18 @@ int main() {
                     std::cout << "epsi : " << epsi << "\n\n";
                     #endif
 
+                    const double dt = 0.1;
+                    const double current_px = 0.0 + v * dt;
+                    const double current_py = 0.0;
+                    const double current_psi = 0.0 + v * (-steering_angle) / Lf * dt;
+                    const double current_v = v + throttle * dt;
+                    const double current_cte = cte + v * sin(epsi) * dt;
+                    const double current_epsi = epsi + v * (-steering_angle) / Lf * dt;
+
                     // I set up the state vector
                     Eigen::VectorXd state(mpc.stateSize());
-                    state << 0, 0, 0, predV, cte, epsi;
+                    //state << 0, 0, 0, predV, cte, epsi;
+                    state << current_px, current_py, current_psi, current_v, current_cte, current_epsi;
 
                     // I call the MPC Solver to compute the optimal trajectory
                     auto result = mpc.Solve(state, coeffs);
@@ -243,7 +269,7 @@ int main() {
 
                     // Latency
                     // The purpose is to mimic real driving conditions where
-                    // the car does actuate the commands instantly.
+                    // the car doesn't actuate the commands instantly.
                     this_thread::sleep_for(std::chrono::duration<double, std::milli>(artificialtLatencyMs));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
