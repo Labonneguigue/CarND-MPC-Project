@@ -104,7 +104,7 @@ private:
 
     double mRuntime; ///< runtime of the overall callback mechanism in [ms].
 
-    size_t N; ///< Number of timesteps to predict ahead
+    size_t N; ///< Number of steps to predict ahead
 
     double mTargetSpeed; ///< Top cruise speed to match
 

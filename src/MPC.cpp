@@ -7,14 +7,14 @@ using CppAD::AD;
 
 
 MPC::MPC(double artificialLatency)
-    : dt(0.15)
+    : dt(0.10)
     , Lf(2.67)
     , mStateSize(6U)
     , mNbActuators(2U)
     , mArtificialLatencyMs(artificialLatency)
     , mRuntime(mArtificialLatencyMs)
     , N(8)
-    , mTargetSpeed(90)
+    , mTargetSpeed(50)
     // TODO: Set the number of model variables (includes both states and inputs).
     // For example: If the state is a 4 element vector, the actuators is a 2
     // element vector and there are 10 timesteps. The number of variables is:

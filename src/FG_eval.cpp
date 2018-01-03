@@ -45,7 +45,7 @@ FG_eval::FG_eval(size_t N,
     , accelerationErrorWeight(1.0)//100.0;
     , diffSteeringErrorWeight(1.0)//100.0;
     , diffAccelErrorWeight(1.0)//500.0;
-    , steerAccelErrorWeight(100.0)
+    , steerAccelErrorWeight(60.0)
 {}
 
 void FG_eval::initialise(Eigen::VectorXd coeffs)

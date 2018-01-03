@@ -146,7 +146,6 @@ int main() {
                     #endif
 
                     // I extrapolate the car's position after the estimated latency
-                    // Latency is 100ms.
                     // Here are the motion's equations:
                     // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
                     // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt

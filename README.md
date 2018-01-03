@@ -6,6 +6,8 @@ Self-Driving Car Engineer Nanodegree Program
 
 My solution answers the Udacity [passing requirements.](https://review.udacity.com/#!/rubrics/896/view)
 
+
+
 ## Introduction
 
 In this project we are asked to implement a Model Predictive Controler (MPC) to actuate the car to follow a trajectory. The car can be actuated by modifying its acceleration and the steering wheels angle.
@@ -24,31 +26,62 @@ The model I've used is the usual Kinematic Bicycle Model defined by the equation
 ![equations1](./images/MPCequations1.png)
 ![equations2](./images/MPCequations2.png)
 
-The only vehicle parameter is Lf which represents the distance from the car's CG to the steering axle in order to approximate the effective turning radius. The value for Lf was left equal to 2.67 m as determined experimentally in the simulator by Udacity.
+The only vehicle parameter is `Lf` which represents the distance from the car's center of gravity to the steering axle in order to approximate the effective turning radius. The value for `Lf` was left equal to 2.67 m as determined experimentally in the simulator by Udacity.
 
 My vector of state variables : `[x, y, psi, v, Cte, Epsi]`
 
+`x` and `y` are the car's position, `psi` is the car heading, `v` its linear velocity, `Cte` the cross-track error and `Epsi` the heading error.  
+
 My actuator vector : `[delta, a]`
 
-
+`Delta` is the steering angle and `a` is the acceleration (1 is full throttle and -1 is full braking).
 
 _Note : Thanks to [Edufford](https://github.com/edufford) for the correction of the fifth equation._
 
 ### Timestep Length and Elapsed Duration (N & dt)
 
+To predict the car trajectory, I first need to choose its length. The few steps along the path are fully determined by their number `N` and the time between them `dt`.
+The more steps there are, the longer the calculation/runtime but the fewer steps, the less accurate the trajectory becomes because the car is "short-sighted".
 
+* After some testing, I found that choosing `N = 8` for the number of steps used in the optimal trajectory calculation was optimal.
+* A timestep of `dt = 0.10` (in seconds) was relatively long given that I tried driving over 100mph and allows the car the *see* far ahead. I experienced an accumulation of error over timesteps when `dt` was to far below the induced latency.
+
+I tried the following `N` and `dt` associations:
+- `5` and `0.15`
+- `10` and `0.05`
+- `8` and `0.15`
+
+![waypoints](./images/waypoints.tiff)
 
 ### Polynomial Fitting and MPC Preprocessing
 
+* The waypoints that represent the center of the road are first transposed into the car coordinate system so that the car is now at the origin `(0,0)` with a null angle as well.
+
+* The waypoints are then used to fit a 3rd order polynomial that is used as the trajectory ground truth.
+
+
 ### Model Predictive Control with Latency
 
-#### Conversion from Map coordinates to Car coordinates
+Model Predictive Control tries to match a trajectory based on some ground-truth and some constraints. In my case here are some of the constraints I've chosen to apply:
 
-cos(psi) * (ptsx[i] - px) + sin(psi) * (ptsy[i] - py);
--sin(psi) * (ptsx[i] - px) + cos(psi) * (ptsy[i] - py);
+| Physical Measure | Explanation | Variable | Weight|
+|:---:|:---:|:---:|:---:|
+|Cross Track Error | To keep the car close the center of the road | `cteErrorWeight` | 20 |
+|Error in angle | To keep the car heading in the right direction | `epsiErrorWeight` | 20 |
+|Difference from target speed | To keep the car to drive at the required speed | `deltaSpeedErrorWeight` | 1 |
+| Steering penalty | To prevent the car from steering to much | `steeringErrorWeight` | 1 |
+| Acceleration penalty | To prevent the car from accelerating and decelerating too much | `accelerationErrorWeight` | 1 |
+| Consecutive steering actuation penalty | To prevent the car from steering too abruptly | `diffSteeringErrorWeight` | 1 |
+| Consecutive acceleration values penalty | To prevent the car from accelerating of slowing too sharply | `diffAccelErrorWeight` | 1 |
+| Acceleration and Steering Penalty | To prevent accelerating and steering at the same time (computer as the multiplication of the 2 entities) <b>It is the most important weight.</b> | `steerAccelErrorWeight` | 100 |
 
-cos(-psi) * (ptsx[i] - px) - sin(-psi) * (ptsy[i] - py);  
-cos(-psi) * (ptsy[i] - py) + sin(-psi) * (ptsx[i] - px);
+The trajectory is defined to respect these constraints. Only the first timestep (actuator values of throttle and steering) will be sent to the simulator. Although, before that, an arbitrary 100ms must be waited to simulate a real-life latency that could take place between the time the actuation values are decided and the time their are inferred to the controllers.
+
+From line 156 to line 161 I am predicting the position of the car after the first timestep `dt`. This allows the solver to take into account the latency and therefore adapt the result to it.
+
+### Result
+
+You can find a video of the result [here](https://youtu.be/tUU4u78V1uo).
 
 ---
 
