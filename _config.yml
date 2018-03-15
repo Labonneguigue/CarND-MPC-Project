@@ -1,1 +1,3 @@
 theme: jekyll-theme-cayman
+google_analytics: UA-115769025-1
+exclude : src
